@@ -1,24 +1,21 @@
 # 🚀 Швидкий старт
 
-## Встановлення Odoo 17
+## Інтерактивне встановлення
 
 ```bash
 mkdir -p ~/odoo && cd ~/odoo
-git clone https://github.com/zhatrus/odoo_start.git odoo17
-cd odoo17
+git clone https://github.com/zhatrus/odoo_start.git odoo-setup
+cd odoo-setup
 chmod +x install.sh
-./install.sh --version 17 --port 8069
+./install.sh
 ```
 
-## Встановлення Odoo 18
-
-```bash
-mkdir -p ~/odoo && cd ~/odoo
-git clone https://github.com/zhatrus/odoo_start.git odoo18
-cd odoo18
-chmod +x install.sh
-./install.sh --version 18 --port 8070 --db-user odoo18
-```
+Скрипт сам запитає всі необхідні параметри:
+- Версію Odoo (17 або 18)
+- HTTP порт
+- Користувача бази даних
+- Директорію встановлення
+- Dev-tools (так/ні)
 
 ## Після встановлення
 
