@@ -354,11 +354,14 @@ if [[ -d "$INSTALL_DIR/$ODOO_DIR" ]]; then
     if [[ ! -f "odoo-helper.conf" ]]; then
         print_info "Створення odoo-helper.conf..."
         cat > "odoo-helper.conf" <<EOF
+PROJECT_ROOT_DIR=$INSTALL_DIR/$ODOO_DIR
 ODOO_BRANCH=$ODOO_VERSION
 ODOO_VERSION=$ODOO_VERSION
 ADDONS_DIR=$INSTALL_DIR/$ODOO_DIR/custom_addons
 ODOO_CONF_FILE=$INSTALL_DIR/$ODOO_DIR/conf/odoo.conf
+VENV_DIR=$INSTALL_DIR/venv
 EOF
+        print_success "odoo-helper.conf створено"
     fi
     
     # Лінкування
