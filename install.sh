@@ -57,7 +57,7 @@ clear
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║                                                            ║"
-echo "║          🚀 Odoo Auto Installer (Interactive)             ║"
+echo "║            Odoo Auto Installer (Interactive)               ║"
 echo "║                                                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -316,11 +316,16 @@ else
     print_warning "$ODOO_DIR вже існує"
 fi
 
+# Права доступу (СПОЧАТКУ)
+print_info "Налаштування прав доступу..."
+sudo chown -R "$USER":"$USER" "$INSTALL_DIR" 2>/dev/null || true
+chmod -R 755 "$INSTALL_DIR" 2>/dev/null || true
+
 # Налаштування конфігурації
 print_info "Налаштування конфігурації..."
 CONF_DIR="$INSTALL_DIR/$ODOO_DIR/conf"
 CONF_FILE="$CONF_DIR/odoo.conf"
-mkdir -p "$CONF_DIR"
+mkdir -p "$CONF_DIR" 2>/dev/null || true
 
 if [[ ! -f "$CONF_FILE" ]]; then
     cat > "$CONF_FILE" <<EOF
@@ -335,17 +340,36 @@ http_port = $HTTP_PORT
 xmlrpc_interface = 0.0.0.0
 data_dir = $INSTALL_DIR/$ODOO_DIR/data
 EOF
-    print_success "Конфігурація створена"
+    print_success "Конфігурація створена: $CONF_FILE"
+else
+    print_warning "Конфігурація вже існує: $CONF_FILE"
 fi
 
-# Права доступу
-sudo chown -R "$USER":"$USER" "$INSTALL_DIR" 2>/dev/null || true
-chmod -R 700 "$INSTALL_DIR" 2>/dev/null || true
-
 # Лінкування з odoo-helper
-if [[ -d "$INSTALL_DIR/$ODOO_DIR/odoo" ]]; then
-    cd "$INSTALL_DIR/$ODOO_DIR/odoo"
-    odoo-helper link . --odoo-version "$ODOO_MAJOR" 2>/dev/null || print_warning "odoo-helper link завершився з попередженнями"
+print_info "Лінкування з odoo-helper..."
+if [[ -d "$INSTALL_DIR/$ODOO_DIR" ]]; then
+    cd "$INSTALL_DIR/$ODOO_DIR"
+    
+    # Створюємо odoo-helper.conf якщо не існує
+    if [[ ! -f "odoo-helper.conf" ]]; then
+        print_info "Створення odoo-helper.conf..."
+        cat > "odoo-helper.conf" <<EOF
+ODOO_BRANCH=$ODOO_VERSION
+ODOO_VERSION=$ODOO_VERSION
+ADDONS_DIR=$INSTALL_DIR/$ODOO_DIR/custom_addons
+ODOO_CONF_FILE=$INSTALL_DIR/$ODOO_DIR/conf/odoo.conf
+EOF
+    fi
+    
+    # Лінкування
+    if [[ -d "odoo" ]]; then
+        cd odoo
+        odoo-helper link . --odoo-version "$ODOO_MAJOR" 2>/dev/null || print_warning "odoo-helper link завершився з попередженнями"
+    fi
+    
+    cd "$INSTALL_DIR/$ODOO_DIR"
+else
+    print_warning "Директорія $INSTALL_DIR/$ODOO_DIR не знайдена"
 fi
 
 # Dev-tools
