@@ -151,7 +151,7 @@ sudo apt upgrade -y
 print_info "Крок 2/12: Встановлення базових пакетів..."
 sudo apt install -y wget git curl ca-certificates lsb-release gnupg apt-transport-https \
   build-essential gettext rsync unzip bzip2 dialog \
-  nodejs npm python3-distutils gcc g++ make virtualenv
+  nodejs npm gcc g++ make python3-pip python3-venv virtualenv
 
 # ============================================================================
 # 3. Встановлення Python
