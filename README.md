@@ -12,9 +12,8 @@
 ### Встановлення Odoo 17
 
 ```bash
-mkdir -p ~/odoo
-cd ~/odoo
-git clone git@github.com:zhatrus/odoo_start.git odoo17
+mkdir -p ~/odoo && cd ~/odoo
+git clone https://github.com/zhatrus/odoo_start.git odoo17
 cd odoo17
 chmod +x install.sh
 ./install.sh --version 17 --port 8069
@@ -23,9 +22,8 @@ chmod +x install.sh
 ### Встановлення Odoo 18
 
 ```bash
-mkdir -p ~/odoo
-cd ~/odoo
-git clone git@github.com:zhatrus/odoo_start.git odoo18
+mkdir -p ~/odoo && cd ~/odoo
+git clone https://github.com/zhatrus/odoo_start.git odoo18
 cd odoo18
 chmod +x install.sh
 ./install.sh --version 18 --port 8070 --db-user odoo18
