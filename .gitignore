@@ -1,0 +1,29 @@
+# Odoo installation directories
+odoo-install/
+venv/
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+logs/
+
+# Backups
+backups/
+*.zip
+*.sql
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+/tmp/
+*.tmp
