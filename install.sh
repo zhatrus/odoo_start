@@ -151,7 +151,19 @@ sudo apt upgrade -y
 print_info "Крок 2/12: Встановлення базових пакетів..."
 sudo apt install -y wget git curl ca-certificates lsb-release gnupg apt-transport-https \
   build-essential gettext rsync unzip bzip2 dialog \
-  nodejs npm gcc g++ make python3-pip python3-venv virtualenv
+  gcc g++ make python3-pip python3-venv virtualenv || true
+
+# Install nodejs and npm separately to avoid conflicts
+if ! command -v node >/dev/null 2>&1; then
+  print_info "Встановлення Node.js..."
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  sudo apt install -y nodejs
+fi
+
+# Ensure npm is available (comes with nodejs from nodesource)
+if ! command -v npm >/dev/null 2>&1; then
+  print_warning "npm не знайдено, але має бути встановлений разом з nodejs"
+fi
 
 # ============================================================================
 # 3. Встановлення Python
