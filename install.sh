@@ -67,8 +67,9 @@ print_header "Крок 1: Вибір версії Odoo"
 echo "Доступні версії:"
 echo "  1) Odoo 17.0 (Python 3.10)"
 echo "  2) Odoo 18.0 (Python 3.12)"
+echo "  3) Odoo 19.0 (Python 3.12)"
 echo ""
-read -p "Оберіть версію (1 або 2) [за замовчуванням: 1]: " version_choice
+read -p "Оберіть версію (1, 2 або 3) [за замовчуванням: 1]: " version_choice
 version_choice=${version_choice:-1}
 
 case $version_choice in
@@ -78,6 +79,10 @@ case $version_choice in
         ;;
     2)
         ODOO_VERSION="18.0"
+        PYTHON_BIN="python3.12"
+        ;;
+    3)
+        ODOO_VERSION="19.0"
         PYTHON_BIN="python3.12"
         ;;
     *)
