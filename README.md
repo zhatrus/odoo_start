@@ -4,8 +4,9 @@
 
 ## 📋 Підтримувані версії
 
-- ✅ Odoo 17.0
-- ✅ Odoo 18.0
+- ✅ Odoo 17.0 (Python 3.10)
+- ✅ Odoo 18.0 (Python 3.12)
+- ✅ Odoo 19.0 (Python 3.12+)
 
 ## 🎯 Швидкий старт
 
@@ -20,7 +21,7 @@ chmod +x install.sh
 ```
 
 Скрипт запитає:
-1. Версію Odoo (17 або 18)
+1. Версію Odoo (17, 18 або 19)
 2. HTTP порт (за замовчуванням 8069)
 3. Користувача PostgreSQL (за замовчуванням odoo)
 4. Директорію встановлення
@@ -33,10 +34,10 @@ chmod +x install.sh
 Скрипт автоматично виконує всі необхідні кроки:
 
 1. ✅ Оновлює систему Ubuntu
-2. ✅ Встановлює Python (3.10 для Odoo 17, 3.12 для Odoo 18)
+2. ✅ Встановлює Python (3.10 для Odoo 17, 3.12 для Odoo 18 та 19)
 3. ✅ Встановлює всі системні залежності
 4. ✅ Створює віртуальне оточення Python
-5. ✅ Встановлює PostgreSQL
+5. ✅ Встановлює PostgreSQL (13+ для Odoo 19)
 6. ✅ Встановлює odoo-helper-scripts
 7. ✅ Встановлює Odoo обраної версії
 8. ✅ Налаштовує конфігурацію
@@ -47,7 +48,7 @@ chmod +x install.sh
 
 | Параметр | Опис | За замовчуванням |
 |----------|------|------------------|
-| `--version, -v` | Версія Odoo (17 або 18) | 17 |
+| `--version, -v` | Версія Odoo (17, 18 або 19) | 17 |
 | `--port, -p` | HTTP порт | 8069 |
 | `--install-dir, -d` | Директорія встановлення | ./odoo-install |
 | `--db-user` | Користувач PostgreSQL | odoo |
@@ -84,12 +85,17 @@ chmod +x install.sh
 ./install.sh --version 17 --no-dev
 ```
 
+### Встановлення Odoo 19 (окремий скрипт)
+```bash
+./install_odoo19.sh
+```
+
 ## 🎮 Управління Odoo після встановлення
 
 ### Запуск сервера
 
 ```bash
-cd odoo-install/odoo-17.0  # або odoo-18.0
+cd odoo-install/odoo-17.0  # або odoo-18.0, odoo-19.0
 source ../venv/bin/activate
 odoo-helper server start
 ```
@@ -233,6 +239,8 @@ odoo-install/
 │   ├── logs/               # Логи
 │   ├── repositories/       # Git репозиторії модулів
 │   └── backups/            # Backup бази даних
+├── odoo-18.0/              # Встановлений Odoo 18 (структура аналогічна)
+└── odoo-19.0/              # Встановлений Odoo 19 (структура аналогічна)
 ```
 
 ## 🔧 Налаштування
@@ -312,7 +320,9 @@ ALTER USER odoo CREATEDB;
 
 ## 📚 Додаткові ресурси
 
-- [Документація Odoo](https://www.odoo.com/documentation/17.0/)
+- [Документація Odoo 17](https://www.odoo.com/documentation/17.0/)
+- [Документація Odoo 18](https://www.odoo.com/documentation/18.0/)
+- [Документація Odoo 19](https://www.odoo.com/documentation/19.0/)
 - [odoo-helper-scripts](https://katyukha.gitlab.io/odoo-helper-scripts/)
 - [OCA (Odoo Community Association)](https://github.com/OCA)
 
