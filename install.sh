@@ -69,8 +69,8 @@ echo "  1) Odoo 17.0 (Python 3.10)"
 echo "  2) Odoo 18.0 (Python 3.12)"
 echo "  3) Odoo 19.0 (Python 3.12)"
 echo ""
-read -p "Оберіть версію (1, 2 або 3) [за замовчуванням: 1]: " version_choice
-version_choice=${version_choice:-1}
+read -p "Оберіть версію (1, 2 або 3) [за замовчуванням: 3]: " version_choice
+version_choice=${version_choice:-3}
 
 case $version_choice in
     1)
@@ -86,9 +86,9 @@ case $version_choice in
         PYTHON_BIN="python3.12"
         ;;
     *)
-        print_error "Невірний вибір. Використовую Odoo 17.0"
-        ODOO_VERSION="17.0"
-        PYTHON_BIN="python3.10"
+        print_error "Невірний вибір. Використовую Odoo 19.0"
+        ODOO_VERSION="19.0"
+        PYTHON_BIN="python3.12"
         ;;
 esac
 
@@ -394,6 +394,121 @@ sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;" 2>/dev/null || true
 # Firewall
 print_info "Налаштування firewall..."
 sudo ufw allow "$HTTP_PORT/tcp" 2>/dev/null || print_warning "UFW не активний"
+
+# ============================================================================
+# Генерація скриптів керування сервером
+# ============================================================================
+
+MGMT_DIR="$INSTALL_DIR/$ODOO_DIR"
+DB_NAME="odoo_db"
+
+print_header "Генерація скриптів керування"
+
+# start-server.sh
+cat > "$MGMT_DIR/start-server.sh" <<STARTSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+source "$INSTALL_DIR/venv/bin/activate"
+export PGUSER=$DB_USER
+export PGPASSWORD=odoo
+export PGHOST=localhost
+echo "Запуск Odoo $ODOO_VERSION..."
+odoo-helper server start
+echo "Odoo доступний: http://\$(hostname -I 2>/dev/null | awk '{print \$1}' || echo localhost):$HTTP_PORT"
+STARTSCRIPT
+
+# stop-server.sh
+cat > "$MGMT_DIR/stop-server.sh" <<STOPSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+source "$INSTALL_DIR/venv/bin/activate"
+echo "Зупинка Odoo..."
+odoo-helper server stop 2>/dev/null || pkill -f "python.*odoo" 2>/dev/null || true
+echo "Odoo зупинено"
+STOPSCRIPT
+
+# restart-server.sh
+cat > "$MGMT_DIR/restart-server.sh" <<RESTARTSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+echo "Перезапуск Odoo..."
+bash "\$SCRIPT_DIR/stop-server.sh"
+sleep 2
+bash "\$SCRIPT_DIR/start-server.sh"
+RESTARTSCRIPT
+
+# status-server.sh
+cat > "$MGMT_DIR/status-server.sh" <<STATUSSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+source "$INSTALL_DIR/venv/bin/activate"
+echo "--- Odoo $ODOO_VERSION статус ---"
+odoo-helper server status 2>/dev/null || {
+    if pgrep -f "python.*odoo" > /dev/null 2>&1; then
+        echo "Статус: ЗАПУЩЕНО"
+        pgrep -fa "python.*odoo"
+    else
+        echo "Статус: ЗУПИНЕНО"
+    fi
+}
+echo ""
+echo "URL: http://\$(hostname -I 2>/dev/null | awk '{print \$1}' || echo localhost):$HTTP_PORT"
+echo "Логи: tail -f $MGMT_DIR/logs/odoo.log"
+STATUSSCRIPT
+
+chmod +x "$MGMT_DIR/start-server.sh" "$MGMT_DIR/stop-server.sh" \
+         "$MGMT_DIR/restart-server.sh" "$MGMT_DIR/status-server.sh"
+print_success "Скрипти створено в: $MGMT_DIR"
+
+# ============================================================================
+# Пропозиція shell-аліасів
+# ============================================================================
+
+print_header "Shell-команди для керування Odoo"
+echo "Ви можете додати зручні команди в shell:"
+echo ""
+echo "  odoo-start    — запуск сервера"
+echo "  odoo-stop     — зупинка сервера"
+echo "  odoo-restart  — перезапуск сервера"
+echo "  odoo-status   — статус сервера"
+echo "  odoo-log      — перегляд логів в реальному часі"
+echo ""
+read -p "Додати ці команди в ~/.bashrc та ~/.zshrc? (y/n) [y]: " add_aliases
+add_aliases=${add_aliases:-y}
+
+if [[ "$add_aliases" =~ ^[Yy]$ ]]; then
+    ALIASES_BLOCK="
+# === Odoo $ODOO_VERSION management (added by install.sh) ===
+alias odoo-start='bash $MGMT_DIR/start-server.sh'
+alias odoo-stop='bash $MGMT_DIR/stop-server.sh'
+alias odoo-restart='bash $MGMT_DIR/restart-server.sh'
+alias odoo-status='bash $MGMT_DIR/status-server.sh'
+alias odoo-log='tail -f $MGMT_DIR/logs/odoo.log'
+# === End Odoo management ==="
+
+    for RC_FILE in "$HOME/.bashrc" "$HOME/.zshrc"; do
+        if [[ -f "$RC_FILE" ]]; then
+            if ! grep -q "Odoo $ODOO_VERSION management" "$RC_FILE" 2>/dev/null; then
+                echo "$ALIASES_BLOCK" >> "$RC_FILE"
+                print_success "Додано в $RC_FILE"
+            else
+                print_warning "Аліаси вже є в $RC_FILE"
+            fi
+        fi
+    done
+
+    # Активуємо в поточній сесії
+    eval "$ALIASES_BLOCK" 2>/dev/null || true
+    print_success "Команди активовані в поточній сесії"
+    print_info "Щоб активувати в нових вікнах: source ~/.bashrc"
+else
+    print_info "Аліаси не додано. Ви завжди можете запустити скрипти вручну:"
+    echo "  $MGMT_DIR/start-server.sh"
+fi
 
 # ============================================================================
 # Завершення

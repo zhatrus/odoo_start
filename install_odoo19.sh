@@ -326,11 +326,117 @@ EOF
     # Firewall
     sudo ufw allow "$HTTP_PORT/tcp" 2>/dev/null || true
     
+    # Генерація скриптів керування
+    print_header "Генерація скриптів керування"
+    local MGMT_DIR="$INSTALL_DIR/$ODOO_DIR"
+
+    cat > "$MGMT_DIR/start-server.sh" <<STARTSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+source "$INSTALL_DIR/venv/bin/activate"
+export PGUSER=$DB_USER
+export PGPASSWORD=odoo
+export PGHOST=localhost
+echo "Запуск Odoo 19.0..."
+odoo-helper server start
+echo "Odoo доступний: http://\$(hostname -I 2>/dev/null | awk '{print \$1}' || echo localhost):$HTTP_PORT"
+STARTSCRIPT
+
+    cat > "$MGMT_DIR/stop-server.sh" <<STOPSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+source "$INSTALL_DIR/venv/bin/activate"
+echo "Зупинка Odoo..."
+odoo-helper server stop 2>/dev/null || pkill -f "python.*odoo" 2>/dev/null || true
+echo "Odoo зупинено"
+STOPSCRIPT
+
+    cat > "$MGMT_DIR/restart-server.sh" <<RESTARTSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+echo "Перезапуск Odoo..."
+bash "\$SCRIPT_DIR/stop-server.sh"
+sleep 2
+bash "\$SCRIPT_DIR/start-server.sh"
+RESTARTSCRIPT
+
+    cat > "$MGMT_DIR/status-server.sh" <<STATUSSCRIPT
+#!/bin/bash
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "\$SCRIPT_DIR"
+source "$INSTALL_DIR/venv/bin/activate"
+echo "--- Odoo 19.0 статус ---"
+odoo-helper server status 2>/dev/null || {
+    if pgrep -f "python.*odoo" > /dev/null 2>&1; then
+        echo "Статус: ЗАПУЩЕНО"
+        pgrep -fa "python.*odoo"
+    else
+        echo "Статус: ЗУПИНЕНО"
+    fi
+}
+echo ""
+echo "URL: http://\$(hostname -I 2>/dev/null | awk '{print \$1}' || echo localhost):$HTTP_PORT"
+echo "Логи: tail -f $MGMT_DIR/logs/odoo.log"
+STATUSSCRIPT
+
+    chmod +x "$MGMT_DIR/start-server.sh" "$MGMT_DIR/stop-server.sh" \
+             "$MGMT_DIR/restart-server.sh" "$MGMT_DIR/status-server.sh"
+    print_success "Скрипти створено в: $MGMT_DIR"
+
+    # Пропозиція shell-аліасів
+    print_header "Shell-команди для керування Odoo"
+    echo "Ви можете додати зручні команди в shell:"
+    echo ""
+    echo "  odoo-start    — запуск сервера"
+    echo "  odoo-stop     — зупинка сервера"
+    echo "  odoo-restart  — перезапуск сервера"
+    echo "  odoo-status   — статус сервера"
+    echo "  odoo-log      — перегляд логів в реальному часі"
+    echo ""
+    read -p "Додати ці команди в ~/.bashrc та ~/.zshrc? (y/n) [y]: " add_aliases
+    add_aliases=${add_aliases:-y}
+
+    if [[ "$add_aliases" =~ ^[Yy]$ ]]; then
+        local ALIASES_BLOCK="
+# === Odoo 19.0 management (added by install_odoo19.sh) ===
+alias odoo-start='bash $MGMT_DIR/start-server.sh'
+alias odoo-stop='bash $MGMT_DIR/stop-server.sh'
+alias odoo-restart='bash $MGMT_DIR/restart-server.sh'
+alias odoo-status='bash $MGMT_DIR/status-server.sh'
+alias odoo-log='tail -f $MGMT_DIR/logs/odoo.log'
+# === End Odoo management ==="
+
+        for RC_FILE in "$HOME/.bashrc" "$HOME/.zshrc"; do
+            if [[ -f "$RC_FILE" ]]; then
+                if ! grep -q "Odoo 19.0 management" "$RC_FILE" 2>/dev/null; then
+                    echo "$ALIASES_BLOCK" >> "$RC_FILE"
+                    print_success "Додано в $RC_FILE"
+                else
+                    print_warning "Аліаси вже є в $RC_FILE"
+                fi
+            fi
+        done
+
+        eval "$ALIASES_BLOCK" 2>/dev/null || true
+        print_success "Команди активовані в поточній сесії"
+        print_info "Щоб активувати в нових вікнах: source ~/.bashrc"
+    else
+        print_info "Аліаси не додано. Скрипти доступні в: $MGMT_DIR"
+    fi
+
     # Завершення
     print_header "🎉 Odoo 19.0 встановлено!"
     echo ""
     echo "Директорія: $INSTALL_DIR/$ODOO_DIR"
-    echo "Запуск: cd $INSTALL_DIR/$ODOO_DIR && source $INSTALL_DIR/venv/bin/activate && odoo-helper server start"
+    echo ""
+    echo "Запуск:     $MGMT_DIR/start-server.sh"
+    echo "Зупинка:    $MGMT_DIR/stop-server.sh"
+    echo "Перезапуск: $MGMT_DIR/restart-server.sh"
+    echo "Статус:     $MGMT_DIR/status-server.sh"
+    echo ""
     echo "URL: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost'):$HTTP_PORT"
 }
 
